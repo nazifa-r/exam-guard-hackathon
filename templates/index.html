@@ -53,9 +53,33 @@
     </div>
   </div>
 
+  <!-- Primary Module Navigation Bar -->
+  <nav class="page-nav-tabs">
+    <div class="page-nav-tabs-container">
+      <button type="button" class="page-nav-tab active" id="tabBtnAudit">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>Exam Quality Audit</span>
+      </button>
+      <button type="button" class="page-nav-tab" id="tabBtnDeadline">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Deadline Collision Checker</span>
+        <span class="tab-tag-badge">Multi-Course</span>
+      </button>
+      <button type="button" class="page-nav-tab" id="tabBtnHandover">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Course Handover Brief</span>
+        <span class="tab-tag-badge tab-tag-new">New Faculty</span>
+      </button>
+    </div>
+  </nav>
+
   <main class="main-container">
-    <!-- Quick Demo Presets Bar -->
-    <section class="presets-card" id="quickPresets">
+    <!-- ==================================================================== -->
+    <!-- MODULE 1: EXAM QUALITY AUDIT                                         -->
+    <!-- ==================================================================== -->
+    <div id="sectionAuditModule" class="module-tab-content">
+      <!-- Quick Demo Presets Bar -->
+      <section class="presets-card" id="quickPresets">
       <div class="presets-header">
         <div class="presets-label">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -408,7 +432,453 @@
         <div id="bankQuestionsList" class="bank-questions-list"></div>
       </div>
     </section>
-  </main>
+  </div> <!-- /sectionAuditModule -->
+
+  <!-- ==================================================================== -->
+  <!-- MODULE 2: DEADLINE COLLISION CHECKER                                 -->
+  <!-- ==================================================================== -->
+  <div id="sectionDeadlineModule" class="module-tab-content hidden">
+    <!-- Presets Bar for Deadlines -->
+    <section class="presets-card">
+      <div class="presets-header">
+        <div class="presets-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>One-Click Scheduling Scenarios for Judges:</span>
+        </div>
+        <span class="presets-hint">Simulate realistic multi-department semester deadlines</span>
+      </div>
+      <div class="preset-buttons">
+        <button type="button" class="preset-btn featured" id="presetDeadlineCollision">
+          <span class="preset-badge badge-danger">High Overload</span>
+          <strong>🚨 Midterm Fatigue Shock (5 Courses, 3 Collisions)</strong>
+          <small>Weeks 8, 9 &amp; 14 Concurrent Midterms &amp; Major Projects</small>
+        </button>
+        <button type="button" class="preset-btn" id="presetDeadlineBalanced">
+          <span class="preset-badge badge-success">Optimized</span>
+          <strong>🟢 Staggered Semester Schedule (5 Courses, 0 Overloads)</strong>
+          <small>Smooth distribution with 48h+ buffers between assessments</small>
+        </button>
+        <button type="button" class="preset-btn" id="clearDeadlinesBtn">
+          <span class="preset-badge badge-neutral">Reset</span>
+          <strong>🧹 Clear All Deadlines</strong>
+          <small>Start clean with an empty timetable</small>
+        </button>
+      </div>
+    </section>
+
+    <div class="workspace-grid">
+      <!-- Left Panel: Deadlines Form & Table -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="step-num">1</span>
+            <div>
+              <h2 class="panel-title">Multi-Course Deadlines Entry</h2>
+              <p class="panel-desc">Add assessments across departmental courses to audit student cognitive load.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <form id="deadlineAddForm" class="deadline-form-grid" onsubmit="return false;">
+            <div class="form-group">
+              <label for="dlCourse">Course Code &amp; Title</label>
+              <input type="text" id="dlCourse" class="bank-input" placeholder="e.g. CSE220 Data Structures" required>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="dlType">Assessment Type</label>
+                <select id="dlType" class="bank-input">
+                  <option value="Midterm Exam">Midterm Exam</option>
+                  <option value="Final Exam">Final Exam</option>
+                  <option value="Term Project Due">Term Project Due</option>
+                  <option value="Major Assignment">Major Assignment</option>
+                  <option value="Quiz / Lab Test">Quiz / Lab Test</option>
+                  <option value="Homework">Homework / Problem Set</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="dlWeight">Impact / Weight</label>
+                <select id="dlWeight" class="bank-input">
+                  <option value="Major">Major (Exam / Capstone Project)</option>
+                  <option value="Minor">Minor (Quiz / Regular Assignment)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="dlDate">Due Date</label>
+                <input type="date" id="dlDate" class="bank-input" required>
+              </div>
+              <div class="form-group">
+                <label for="dlNotes">Optional Context</label>
+                <input type="text" id="dlNotes" class="bank-input" placeholder="e.g. 25% course weight, 3hr duration">
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-secondary" id="addDeadlineRowBtn" style="width: 100%; justify-content: center; margin-top: 0.2rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Assessment Deadline
+            </button>
+          </form>
+
+          <!-- Deadlines Table -->
+          <div class="deadline-list-wrapper">
+            <div class="deadline-list-header">
+              <span class="deadline-list-title">Configured Assessments</span>
+              <span class="badge badge-neutral" id="deadlineCountBadge">0 Items</span>
+            </div>
+            <div class="deadline-table-container">
+              <table class="deadline-table" id="deadlineTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Course</th>
+                    <th>Assessment</th>
+                    <th>Weight</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="deadlineTableBody">
+                  <tr class="empty-row"><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No deadlines added yet. Click a demo preset above or add a row.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="action-footer" style="margin-top: 1.25rem;">
+            <button type="button" class="btn btn-primary" id="runCollisionCheckBtn" style="width: 100%; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <span>🚀 Audit Semester Deadline Collisions</span>
+            </button>
+            <div class="status-notice hidden" id="deadlineStatusNotice"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Results & Heatmap -->
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="step-num">2</span>
+            <div>
+              <h2 class="panel-title">Collision Heatmap &amp; AI Recommendations</h2>
+              <p class="panel-desc">Visual 16-week student fatigue distribution and cross-course mitigation advice.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Empty State -->
+          <div class="empty-state" id="deadlineEmptyState">
+            <div class="empty-state-icon">📅</div>
+            <h3 class="empty-state-title">Ready for Multi-Course Scheduling Audit</h3>
+            <p class="empty-state-desc">Add assessment deadlines or click <strong>🚨 Midterm Fatigue Shock</strong> preset to visualize week-by-week cognitive load bottlenecks.</p>
+          </div>
+
+          <!-- Results Dashboard -->
+          <div class="results-dashboard hidden" id="deadlineResultsDashboard">
+            <!-- KPI Summary Strip -->
+            <div class="kpi-grid">
+              <div class="kpi-card" id="kpiTotalDeadlines">
+                <span class="kpi-label">Total Deadlines</span>
+                <span class="kpi-value" id="valTotalDeadlines">0</span>
+                <span class="kpi-sub">Across all courses</span>
+              </div>
+              <div class="kpi-card" id="kpiCollisionWeeks">
+                <span class="kpi-label">Collision Weeks</span>
+                <span class="kpi-value text-danger" id="valCollisionWeeks">0</span>
+                <span class="kpi-sub">High overload risk</span>
+              </div>
+              <div class="kpi-card" id="kpiPeakWeek">
+                <span class="kpi-label">Peak Burden Week</span>
+                <span class="kpi-value text-warning" id="valPeakWeek">—</span>
+                <span class="kpi-sub">Highest concurrent weight</span>
+              </div>
+              <div class="kpi-card" id="kpiFatigueRisk">
+                <span class="kpi-label">Student Fatigue Index</span>
+                <span class="kpi-value" id="valFatigueRisk">—</span>
+                <span class="kpi-sub" id="valFatigueSub">Multi-course spacing</span>
+              </div>
+            </div>
+
+            <!-- AI Executive Overview Box -->
+            <div class="diagnostic-box" id="deadlineAiBox" style="margin-bottom: 1.5rem;">
+              <div class="diagnostic-header">
+                <div class="diagnostic-title">
+                  <span class="diagnostic-icon">🤖</span>
+                  <span>AI Academic Coordination Brief</span>
+                </div>
+                <span class="badge badge-info">Faculty Sync</span>
+              </div>
+              <p class="diagnostic-desc" id="deadlineAiOverviewText" style="line-height: 1.6; font-size: 0.92rem;"></p>
+            </div>
+
+            <!-- 16-Week Heatmap & Timeline -->
+            <div class="result-section-card">
+              <div class="section-card-header">
+                <div class="section-heading">
+                  <span class="section-icon">🗓️</span>
+                  <div>
+                    <h3 class="section-title">16-Week Semester Cognitive Load Heatmap</h3>
+                    <p class="section-desc">Click any week to inspect conflicting course deliverables.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body">
+                <div class="calendar-timeline-grid" id="calendarTimelineGrid"></div>
+              </div>
+            </div>
+
+            <!-- Collision Hotspot Cards List -->
+            <div class="result-section-card" id="collisionCardsSection">
+              <div class="section-card-header">
+                <div class="section-heading">
+                  <span class="section-icon">⚠️</span>
+                  <div>
+                    <h3 class="section-title">Identified Collision Hotspots &amp; Mitigation Strategies</h3>
+                    <p class="section-desc">Specific date conflicts and AI-recommended rescheduling shifts.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="section-card-body">
+                <div id="collisionHotspotsList" class="collision-hotspots-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODULE 3: COURSE HANDOVER NOTES GENERATOR                            -->
+  <!-- ==================================================================== -->
+  <div id="sectionHandoverModule" class="module-tab-content hidden">
+    <!-- Presets Bar for Handover -->
+    <section class="presets-card">
+      <div class="presets-header">
+        <div class="presets-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>One-Click Faculty Handover Presets:</span>
+        </div>
+        <span class="presets-hint">Preload real past course context, exam styles, and instructor hallway notes</span>
+      </div>
+      <div class="preset-buttons">
+        <button type="button" class="preset-btn featured" id="presetHandoverCSE220">
+          <span class="preset-badge badge-success">Core Gateway</span>
+          <strong>🌟 CSE220 Data Structures &amp; Algorithms</strong>
+          <small>Memory leaks, recursion proofs, O(N log N) partial credit rules</small>
+        </button>
+        <button type="button" class="preset-btn" id="presetHandoverCSE311">
+          <span class="preset-badge badge-info">Systems Course</span>
+          <strong>⚡ CSE311 Database Systems</strong>
+          <small>BCNF decomposition, query execution trees, ACID isolation pitfalls</small>
+        </button>
+        <button type="button" class="preset-btn" id="clearHandoverBtn">
+          <span class="preset-badge badge-neutral">Reset</span>
+          <strong>🧹 Clear Form</strong>
+          <small>Enter a new course from scratch</small>
+        </button>
+      </div>
+    </section>
+
+    <div class="workspace-grid">
+      <!-- Left Panel: Handover Form -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="step-num">1</span>
+            <div>
+              <h2 class="panel-title">Course Historical Context</h2>
+              <p class="panel-desc">Provide syllabus outcomes, past exam patterns, and informal faculty notes.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <form id="handoverForm" onsubmit="return false;">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="hoCourseCode">Course Code &amp; Title</label>
+                <input type="text" id="hoCourseCode" class="bank-input" placeholder="e.g. CSE220 Data Structures &amp; Algorithms" value="CSE220: Data Structures &amp; Algorithms">
+              </div>
+              <div class="form-group">
+                <label for="hoTerm">Target Term / Semester</label>
+                <input type="text" id="hoTerm" class="bank-input" placeholder="e.g. Spring 2027" value="Spring 2027">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="hoOutcomes">Course Learning Outcomes (COs / LOs)</label>
+              <textarea id="hoOutcomes" class="code-textarea" rows="3" placeholder="Paste official course outcomes here..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="hoTopics">Syllabus Topics Covered</label>
+              <textarea id="hoTopics" class="code-textarea" rows="3" placeholder="List key modules (e.g. Dynamic Arrays, Linked Lists, Trees, Graphs, Hashing)..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <div class="form-group-header">
+                <label for="hoPastQuestions">Past Exam Questions / Recurring Problems</label>
+                <button type="button" class="btn-text-action" id="hoImportCurrentExamBtn">📋 Import from Exam Tab</button>
+              </div>
+              <textarea id="hoPastQuestions" class="code-textarea" rows="3" placeholder="Paste sample questions or typical final exam problems..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Past Grade Distribution Summary <span class="label-optional">(Optional)</span></label>
+              <div class="form-row-4">
+                <input type="text" id="hoAvgGrade" class="bank-input" placeholder="Avg: 72%" value="72%">
+                <input type="text" id="hoMinGrade" class="bank-input" placeholder="Min: 38%" value="38%">
+                <input type="text" id="hoMaxGrade" class="bank-input" placeholder="Max: 98%" value="98%">
+                <input type="text" id="hoPassRate" class="bank-input" placeholder="Pass: 84%" value="84%">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="hoInstructorNotes">Outgoing Instructor's Informal Notes &amp; Hallway Advice <span class="label-optional">(High Impact)</span></label>
+              <textarea id="hoInstructorNotes" class="code-textarea" rows="3" placeholder="e.g. 'Students always struggle with pointer manipulation in recursion. Skip topic X as it rarely tests well. TAs grade Big-O proofs too harshly...'"></textarea>
+            </div>
+
+            <button type="button" class="btn btn-primary" id="generateHandoverBtn" style="width: 100%; justify-content: center; margin-top: 0.5rem;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+              <span>✨ Synthesize 1-Page Handover Brief</span>
+            </button>
+            <div class="status-notice hidden" id="handoverStatusNotice"></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Right Panel: Handover Output Brief -->
+      <section class="panel results-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="step-num">2</span>
+            <div>
+              <h2 class="panel-title">Synthesized Faculty Handover Brief</h2>
+              <p class="panel-desc">Structured, executive one-page briefing document for incoming instructors.</p>
+            </div>
+          </div>
+          <div class="header-action-group" id="handoverActionButtons" style="display: none;">
+            <button type="button" class="btn btn-outline btn-sm" id="copyHandoverBtn" title="Copy text to clipboard">📋 Copy</button>
+            <button type="button" class="btn btn-outline btn-sm" id="exportHandoverBtn" title="Download Markdown document">📥 Export (.md)</button>
+            <button type="button" class="btn btn-outline btn-sm" id="printHandoverBtn" title="Print or save as PDF">🖨️ Print</button>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Empty State -->
+          <div class="empty-state" id="handoverEmptyState">
+            <div class="empty-state-icon">📋</div>
+            <h3 class="empty-state-title">Ready to Generate Course Handover Brief</h3>
+            <p class="empty-state-desc">Select a demo preset like <strong>🌟 CSE220 Data Structures</strong> or fill out the historical syllabus data to produce an actionable 2-minute handover document.</p>
+          </div>
+
+          <!-- Handover Brief Document Card -->
+          <div class="handover-document-wrapper hidden" id="handoverDocumentWrapper">
+            <div class="handover-doc-card" id="printableHandoverCard">
+              <!-- Brief Document Header -->
+              <div class="handover-doc-header">
+                <div class="handover-doc-header-main">
+                  <span class="handover-pill-tag">Official Faculty Transition Document</span>
+                  <h1 class="handover-doc-title" id="briefDocCourseTitle">CSE220: Data Structures &amp; Algorithms</h1>
+                  <p class="handover-doc-subtitle">Course Handover &amp; Instructional Continuity Brief &bull; <span id="briefDocTerm">Spring 2027</span></p>
+                </div>
+                <div class="handover-doc-meta-badge">
+                  <span class="badge badge-success" id="briefDocEngineTag">AI Synthesized</span>
+                  <span class="handover-date-text" id="briefDocDate">September 2026</span>
+                </div>
+              </div>
+
+              <!-- Quick Metrics Banner -->
+              <div class="handover-metrics-strip">
+                <div class="handover-metric-item">
+                  <span class="hm-label">Course Rigor Profile</span>
+                  <span class="hm-val" id="hmRigor">High (Gateway Course)</span>
+                </div>
+                <div class="handover-metric-item">
+                  <span class="hm-label">Theory vs Implementation</span>
+                  <span class="hm-val" id="hmTheoryCoding">35% Math / 65% Code</span>
+                </div>
+                <div class="handover-metric-item">
+                  <span class="hm-label">Recommended Quiz Pace</span>
+                  <span class="hm-val" id="hmQuizPace">Bi-Weekly</span>
+                </div>
+              </div>
+
+              <!-- Section 1: Course Overview & Role -->
+              <div class="brief-section-box">
+                <div class="brief-section-header">
+                  <span class="brief-sec-num">1</span>
+                  <h3 class="brief-sec-title">Course Overview &amp; Curriculum Role</h3>
+                </div>
+                <div class="brief-sec-content">
+                  <p class="brief-paragraph" id="briefOverviewText"></p>
+                  <div class="curriculum-role-callout" id="briefCurriculumRole"></div>
+                </div>
+              </div>
+
+              <!-- Section 2: Historically Tricky Topics -->
+              <div class="brief-section-box">
+                <div class="brief-section-header">
+                  <span class="brief-sec-num">2</span>
+                  <h3 class="brief-sec-title">Historically Tricky Topics &amp; Student Pitfalls</h3>
+                </div>
+                <div class="brief-sec-content">
+                  <div class="tricky-topics-grid" id="briefTrickyTopicsGrid"></div>
+                </div>
+              </div>
+
+              <!-- Section 3: Exam Style & Assessment Culture -->
+              <div class="brief-section-box">
+                <div class="brief-section-header">
+                  <span class="brief-sec-num">3</span>
+                  <h3 class="brief-sec-title">Exam Style &amp; Cognitive Culture</h3>
+                </div>
+                <div class="brief-sec-content">
+                  <div class="exam-style-card">
+                    <div class="style-row">
+                      <strong>Cognitive Distribution:</strong>
+                      <span id="briefBloomsDist"></span>
+                    </div>
+                    <div class="style-row">
+                      <strong>Typical Exam Format:</strong>
+                      <span id="briefTypicalFormat"></span>
+                    </div>
+                    <div class="style-row">
+                      <strong>Common Question Archetypes:</strong>
+                      <span id="briefQuestionTypes"></span>
+                    </div>
+                    <div class="style-callout-warn">
+                      <strong>⚠️ TA Grading Consistency Pitfall:</strong>
+                      <span id="briefGradingPitfall"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 4: Suggested Focus Areas -->
+              <div class="brief-section-box">
+                <div class="brief-section-header">
+                  <span class="brief-sec-num">4</span>
+                  <h3 class="brief-sec-title">Suggested Focus Areas for Incoming Faculty</h3>
+                </div>
+                <div class="brief-sec-content">
+                  <div class="focus-recommendations-list" id="briefFocusList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
 
   <!-- Suggestion Modal -->
   <div class="modal-overlay hidden" id="suggestionModal">

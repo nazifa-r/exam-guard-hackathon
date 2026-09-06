@@ -1677,28 +1677,697 @@ textarea {
 }
 
 /* ==========================================================================
-   Print Optimization for TA Grading Sheets
+   Page Navigation Tabs
+   ========================================================================== */
+.page-nav-tabs {
+  background: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 61px;
+  z-index: 40;
+}
+
+.page-nav-tabs-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  overflow-x: auto;
+}
+
+.page-nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.page-nav-tab:hover {
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.03);
+}
+
+.page-nav-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-tag-badge {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tab-tag-new {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.module-tab-content.hidden {
+  display: none !important;
+}
+
+/* Helper Form Rows */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.form-row-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.label-optional {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-weight: normal;
+}
+
+.btn-text-action {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-text-action:hover {
+  text-decoration: underline;
+}
+
+.header-action-group {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* ==========================================================================
+   Module 2: Deadline Collision Checker Styles
+   ========================================================================== */
+.deadline-list-wrapper {
+  margin-top: 1.25rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-card);
+}
+
+.deadline-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.9rem;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.deadline-list-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.deadline-table-container {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.deadline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.deadline-table th {
+  background: #fafafa;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.deadline-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.deadline-table tr:hover td {
+  background: var(--surface-subtle);
+}
+
+.btn-row-del {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn-row-del:hover {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* 16-Week Heatmap & Timeline */
+.calendar-timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.timeline-week-col {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.timeline-week-col:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.timeline-week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeline-week-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+}
+
+.timeline-week-dates {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.timeline-bar-wrapper {
+  height: 6px;
+  background: var(--surface-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0.2rem 0;
+}
+
+.timeline-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.timeline-badge-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  display: inline-block;
+  text-align: center;
+}
+
+.timeline-items-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.timeline-item-micro {
+  font-size: 0.72rem;
+  background: var(--surface-subtle);
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  border-left: 3px solid var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-item-micro.major {
+  border-left-color: var(--danger);
+  font-weight: 600;
+  background: #fef2f2;
+}
+
+/* Severity Theme Classes */
+.timeline-severity-critical {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+.timeline-severity-critical .timeline-bar { background: var(--danger); }
+.timeline-severity-critical .timeline-badge-pill { background: #fee2e2; color: #991b1b; }
+
+.timeline-severity-heavy {
+  border-color: #fde68a;
+  background: #fffdf5;
+}
+.timeline-severity-heavy .timeline-bar { background: var(--warning); }
+.timeline-severity-heavy .timeline-badge-pill { background: #fef3c7; color: #92400e; }
+
+.timeline-severity-moderate {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+.timeline-severity-moderate .timeline-bar { background: var(--info); }
+.timeline-severity-moderate .timeline-badge-pill { background: #dbeafe; color: #1e40af; }
+
+.timeline-severity-light {
+  border-color: #a7f3d0;
+  background: #f6fdf9;
+}
+.timeline-severity-light .timeline-bar { background: var(--success); }
+.timeline-severity-light .timeline-badge-pill { background: #d1fae5; color: #065f46; }
+
+.timeline-severity-empty {
+  opacity: 0.6;
+}
+.timeline-severity-empty .timeline-bar { background: transparent; }
+.timeline-severity-empty .timeline-badge-pill { background: var(--surface-subtle); color: var(--text-light); }
+
+/* Collision Hotspots List */
+.collision-hotspots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.collision-hotspot-card {
+  border: 1px solid #fca5a5;
+  background: #fff8f8;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hotspot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hotspot-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--danger-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hotspot-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.hotspot-course-card {
+  background: white;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hotspot-course-name {
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: var(--text-main);
+}
+
+.hotspot-course-meta {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.hotspot-recom-box {
+  background: white;
+  border-left: 4px solid var(--primary);
+  border-radius: 4px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: #1e1b4b;
+}
+
+/* ==========================================================================
+   Module 3: Course Handover Brief Styles
+   ========================================================================== */
+.handover-document-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.handover-doc-card {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.handover-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--border-subtle);
+  padding-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.handover-pill-tag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-bottom: 0.4rem;
+}
+
+.handover-doc-title {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.handover-doc-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.handover-doc-meta-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.handover-date-text {
+  font-size: 0.76rem;
+  color: var(--text-light);
+}
+
+/* Metrics Strip */
+.handover-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+  background: var(--surface-subtle);
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.handover-metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hm-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.hm-val {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+/* Brief Sections */
+.brief-section-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.brief-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.4rem;
+}
+
+.brief-sec-num {
+  width: 22px;
+  height: 22px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.brief-sec-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.brief-paragraph {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #334155;
+}
+
+.curriculum-role-callout {
+  margin-top: 0.5rem;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+/* Tricky Topics Grid */
+.tricky-topics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.tricky-topic-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  background: #fdfdfd;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-left: 4px solid var(--warning);
+}
+
+.tricky-topic-card.very-high {
+  border-left-color: var(--danger);
+  background: #fffcfc;
+}
+
+.tricky-topic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tricky-topic-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+
+.tricky-pitfall-text {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.tricky-evidence-box {
+  font-size: 0.78rem;
+  color: #64748b;
+  background: var(--surface-subtle);
+  padding: 0.4rem 0.65rem;
+  border-radius: 4px;
+  font-style: italic;
+}
+
+/* Exam Style Card */
+.exam-style-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: 0.86rem;
+}
+
+.style-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.style-row strong {
+  color: #1e293b;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.style-callout-warn {
+  margin-top: 0.3rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+/* Focus Areas List */
+.focus-recommendations-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+}
+
+.focus-item-card {
+  border: 1px solid #c7d2fe;
+  background: #fbfbfe;
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.focus-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.focus-item-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #312e81;
+}
+
+.focus-timing-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  background: var(--primary-light);
+  color: var(--primary);
+  border-radius: var(--radius-full);
+}
+
+.focus-item-advice {
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Print Optimization for Handover Brief & TA Grading Sheets
    ========================================================================== */
 @media print {
   body {
-    background: #ffffff;
-    color: #000000;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-  .app-header, .hero-strip, .presets-card, .input-panel, .toolbar, .app-footer, .action-footer {
+  .app-header, .hero-strip, .page-nav-tabs, .presets-card, .input-panel, .app-footer, .header-action-group, #suggestionModal, #archiveToast {
     display: none !important;
+  }
+  .main-container {
+    padding: 0 !important;
+    max-width: 100% !important;
   }
   .workspace-grid {
     display: block !important;
   }
-  .output-panel {
+  .panel {
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
   }
-  .result-section-card {
-    page-break-inside: avoid;
-    border: 1px solid #ccc !important;
+  .handover-doc-card {
+    border: none !important;
     box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .brief-section-box {
+    page-break-inside: avoid;
   }
 }
+
 

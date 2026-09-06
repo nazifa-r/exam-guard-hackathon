@@ -2,6 +2,16 @@
 // ExamGuard Frontend Controller — AUST CSE Carnival Hackathon Edition
 // ==========================================================================
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   // Elements
   const engineStatusEl = document.getElementById("engineStatus");
@@ -1080,7 +1090,683 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => toast.classList.add("hidden"), 4000);
   }
 
+  // ========================================================================
+  // 11. PRIMARY MODULE TAB NAVIGATION
+  // ========================================================================
+  const tabBtnAudit = document.getElementById("tabBtnAudit");
+  const tabBtnDeadline = document.getElementById("tabBtnDeadline");
+  const tabBtnHandover = document.getElementById("tabBtnHandover");
+
+  const sectionAudit = document.getElementById("sectionAuditModule");
+  const sectionDeadline = document.getElementById("sectionDeadlineModule");
+  const sectionHandover = document.getElementById("sectionHandoverModule");
+
+  function switchMainTab(target) {
+    [tabBtnAudit, tabBtnDeadline, tabBtnHandover].forEach(b => b?.classList.remove("active"));
+    [sectionAudit, sectionDeadline, sectionHandover].forEach(s => s?.classList.add("hidden"));
+
+    if (target === "audit") {
+      tabBtnAudit?.classList.add("active");
+      sectionAudit?.classList.remove("hidden");
+    } else if (target === "deadline") {
+      tabBtnDeadline?.classList.add("active");
+      sectionDeadline?.classList.remove("hidden");
+    } else if (target === "handover") {
+      tabBtnHandover?.classList.add("active");
+      sectionHandover?.classList.remove("hidden");
+    }
+  }
+
+  tabBtnAudit?.addEventListener("click", () => switchMainTab("audit"));
+  tabBtnDeadline?.addEventListener("click", () => switchMainTab("deadline"));
+  tabBtnHandover?.addEventListener("click", () => switchMainTab("handover"));
+
+  // ========================================================================
+  // 12. MODULE 2: DEADLINE COLLISION CHECKER LOGIC
+  // ========================================================================
+  let configuredDeadlines = [];
+
+  const dlCourse = document.getElementById("dlCourse");
+  const dlType = document.getElementById("dlType");
+  const dlWeight = document.getElementById("dlWeight");
+  const dlDate = document.getElementById("dlDate");
+  const dlNotes = document.getElementById("dlNotes");
+  const addDeadlineRowBtn = document.getElementById("addDeadlineRowBtn");
+  const deadlineTableBody = document.getElementById("deadlineTableBody");
+  const deadlineCountBadge = document.getElementById("deadlineCountBadge");
+
+  const presetDeadlineCollision = document.getElementById("presetDeadlineCollision");
+  const presetDeadlineBalanced = document.getElementById("presetDeadlineBalanced");
+  const clearDeadlinesBtn = document.getElementById("clearDeadlinesBtn");
+
+  const runCollisionCheckBtn = document.getElementById("runCollisionCheckBtn");
+  const deadlineStatusNotice = document.getElementById("deadlineStatusNotice");
+  const deadlineEmptyState = document.getElementById("deadlineEmptyState");
+  const deadlineResultsDashboard = document.getElementById("deadlineResultsDashboard");
+
+  // Helper to format ISO date safely without timezone distortion
+  function getSemesterDate(offsetDays) {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const daysToMonday = currentDay === 0 ? 1 : (8 - currentDay);
+    const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToMonday + offsetDays);
+    const y = target.getFullYear();
+    const m = String(target.getMonth() + 1).padStart(2, "0");
+    const d = String(target.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  // Set default date picker to upcoming Monday
+  if (dlDate) dlDate.value = getSemesterDate(7);
+
+  const DEADLINE_PRESETS = {
+    collision: [
+      { id: "dl-1", course: "CSE220 Data Structures", type: "Midterm Exam", weight: "Major", date: getSemesterDate(49), notes: "30% course weight, 2.5hr duration" },
+      { id: "dl-2", course: "CSE311 Database Systems", type: "Midterm Exam", weight: "Major", date: getSemesterDate(51), notes: "25% weight, ERD & Normalization" },
+      { id: "dl-3", course: "CSE317 Software Engineering", type: "Midterm Exam", weight: "Major", date: getSemesterDate(56), notes: "Design Patterns & UML Exam" },
+      { id: "dl-4", course: "CSE212 Digital Logic", type: "Term Project Due", weight: "Major", date: getSemesterDate(58), notes: "FPGA Hardware Simulation report" },
+      { id: "dl-5", course: "CSE305 Microprocessors", type: "Quiz / Lab Test", weight: "Minor", date: getSemesterDate(59), notes: "Assembly tracing quiz" },
+      { id: "dl-6", course: "CSE220 Data Structures", type: "Major Assignment", weight: "Major", date: getSemesterDate(91), notes: "B-Tree & Graph library release" },
+      { id: "dl-7", course: "CSE311 Database Systems", type: "Final Exam", weight: "Major", date: getSemesterDate(93), notes: "Comprehensive Final" },
+      { id: "dl-8", course: "CSE317 Software Engineering", type: "Term Project Due", weight: "Major", date: getSemesterDate(94), notes: "Final deployment sprint" }
+    ],
+    balanced: [
+      { id: "dl-b1", course: "CSE220 Data Structures", type: "Quiz / Lab Test", weight: "Minor", date: getSemesterDate(21), notes: "Linked List quiz" },
+      { id: "dl-b2", course: "CSE311 Database Systems", type: "Major Assignment", weight: "Minor", date: getSemesterDate(35), notes: "SQL queries" },
+      { id: "dl-b3", course: "CSE220 Data Structures", type: "Midterm Exam", weight: "Major", date: getSemesterDate(49), notes: "Midterm 1" },
+      { id: "dl-b4", course: "CSE317 Software Engineering", type: "Midterm Exam", weight: "Major", date: getSemesterDate(63), notes: "Midterm staggered" },
+      { id: "dl-b5", course: "CSE212 Digital Logic", type: "Term Project Due", weight: "Major", date: getSemesterDate(77), notes: "FPGA submission" },
+      { id: "dl-b6", course: "CSE311 Database Systems", type: "Final Exam", weight: "Major", date: getSemesterDate(98), notes: "Finals week" }
+    ]
+  };
+
+  function renderDeadlinesTable() {
+    if (!deadlineTableBody) return;
+    if (configuredDeadlines.length === 0) {
+      deadlineTableBody.innerHTML = `<tr class="empty-row"><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No deadlines added yet. Click a demo preset above or add a row.</td></tr>`;
+      if (deadlineCountBadge) deadlineCountBadge.textContent = "0 Items";
+      return;
+    }
+
+    if (deadlineCountBadge) deadlineCountBadge.textContent = `${configuredDeadlines.length} Item${configuredDeadlines.length !== 1 ? 's' : ''}`;
+    deadlineTableBody.innerHTML = configuredDeadlines.map((it, idx) => `
+      <tr>
+        <td><span style="font-family:var(--font-mono); font-weight:600;">${it.date}</span></td>
+        <td><strong>${escapeHtml(it.course)}</strong></td>
+        <td><span class="badge ${it.type.includes('Exam') ? 'badge-danger' : it.type.includes('Project') ? 'badge-info' : 'badge-neutral'}">${escapeHtml(it.type)}</span></td>
+        <td><span class="badge ${it.weight.toLowerCase() === 'major' ? 'badge-danger' : 'badge-neutral'}">${it.weight}</span></td>
+        <td><button type="button" class="btn-row-del" data-index="${idx}" onclick="window.removeDeadlineRow && window.removeDeadlineRow(${idx})" title="Remove item">&times;</button></td>
+      </tr>
+    `).join("");
+  }
+
+  window.removeDeadlineRow = function(index) {
+    if (typeof index === 'number' && index >= 0 && index < configuredDeadlines.length) {
+      configuredDeadlines.splice(index, 1);
+      renderDeadlinesTable();
+      showToast("Assessment removed.");
+    }
+  };
+
+  deadlineTableBody?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-row-del");
+    if (btn) {
+      const idx = parseInt(btn.getAttribute("data-index"), 10);
+      if (!isNaN(idx)) {
+        window.removeDeadlineRow(idx);
+      }
+    }
+  });
+
+  addDeadlineRowBtn?.addEventListener("click", () => {
+    const course = dlCourse?.value?.trim();
+    const type = dlType?.value || "Assignment";
+    const weight = dlWeight?.value || "Major";
+    const date = dlDate?.value;
+    const notes = dlNotes?.value?.trim() || "";
+
+    if (!course) {
+      alert("Please enter a course code / title (e.g. CSE220 Data Structures).");
+      dlCourse?.focus();
+      return;
+    }
+    if (!date) {
+      alert("Please select a valid due date.");
+      dlDate?.focus();
+      return;
+    }
+
+    configuredDeadlines.push({
+      id: `dl-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      course,
+      type,
+      weight,
+      date,
+      notes
+    });
+
+    dlCourse.value = "";
+    dlNotes.value = "";
+    // Keep date picker set to current value for easy multi-entry
+    renderDeadlinesTable();
+    showToast(`Added deadline for ${course}`);
+  });
+
+  // Allow pressing Enter in input fields to add deadline
+  [dlCourse, dlDate, dlNotes].forEach(input => {
+    input?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addDeadlineRowBtn?.click();
+      }
+    });
+  });
+
+  presetDeadlineCollision?.addEventListener("click", () => {
+    configuredDeadlines = JSON.parse(JSON.stringify(DEADLINE_PRESETS.collision));
+    renderDeadlinesTable();
+    showToast("Loaded 🚨 Midterm Fatigue Shock scenario! Running audit...");
+    runCollisionCheckBtn?.click();
+  });
+
+  presetDeadlineBalanced?.addEventListener("click", () => {
+    configuredDeadlines = JSON.parse(JSON.stringify(DEADLINE_PRESETS.balanced));
+    renderDeadlinesTable();
+    showToast("Loaded 🟢 Balanced Schedule scenario! Running audit...");
+    runCollisionCheckBtn?.click();
+  });
+
+  clearDeadlinesBtn?.addEventListener("click", () => {
+    configuredDeadlines = [];
+    renderDeadlinesTable();
+    deadlineEmptyState?.classList.remove("hidden");
+    deadlineResultsDashboard?.classList.add("hidden");
+    showToast("All deadlines cleared.");
+  });
+
+  // Initial render of empty table
+  renderDeadlinesTable();
+
+  // Execute Collision Audit
+  runCollisionCheckBtn?.addEventListener("click", async () => {
+    if (configuredDeadlines.length === 0) {
+      alert("Please add at least one assessment deadline or load a preset first.");
+      return;
+    }
+
+    runCollisionCheckBtn.disabled = true;
+    runCollisionCheckBtn.innerHTML = `<span class="btn-spinner"></span> Auditing Semester Timetable...`;
+    deadlineStatusNotice.className = "status-notice loading";
+    deadlineStatusNotice.textContent = "Analyzing cross-course overlap and synthesizing AI coordination advice...";
+    deadlineStatusNotice.classList.remove("hidden");
+
+    try {
+      const res = await fetch("/api/check-deadlines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deadlines: configuredDeadlines })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Analysis failed");
+
+      renderDeadlineResults(data);
+      deadlineStatusNotice.className = "status-notice success";
+      deadlineStatusNotice.textContent = `Audit Complete: Detected ${data.collision_count} critical collision week(s).`;
+      setTimeout(() => deadlineStatusNotice.classList.add("hidden"), 3500);
+    } catch (err) {
+      deadlineStatusNotice.className = "status-notice error";
+      deadlineStatusNotice.textContent = `Error: ${err.message}`;
+    } finally {
+      runCollisionCheckBtn.disabled = false;
+      runCollisionCheckBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span>🚀 Audit Semester Deadline Collisions</span>`;
+    }
+  });
+
+  function renderDeadlineResults(data) {
+    deadlineEmptyState?.classList.add("hidden");
+    deadlineResultsDashboard?.classList.remove("hidden");
+
+    // KPI values
+    document.getElementById("valTotalDeadlines").textContent = data.total_deadlines;
+    document.getElementById("valCollisionWeeks").textContent = data.collision_count;
+    document.getElementById("valPeakWeek").textContent = data.highest_risk_week;
+
+    const valFatigueRisk = document.getElementById("valFatigueRisk");
+    const valFatigueSub = document.getElementById("valFatigueSub");
+    if (data.collision_count >= 2) {
+      valFatigueRisk.textContent = "High (Severe Fatigue)";
+      valFatigueRisk.className = "kpi-value text-danger";
+      valFatigueSub.textContent = "High student burnout probability";
+    } else if (data.collision_count === 1) {
+      valFatigueRisk.textContent = "Moderate Friction";
+      valFatigueRisk.className = "kpi-value text-warning";
+      valFatigueSub.textContent = "1 bottleneck requires shifting";
+    } else {
+      valFatigueRisk.textContent = "Optimal (Balanced)";
+      valFatigueRisk.className = "kpi-value text-success";
+      valFatigueSub.textContent = "Adequate recovery spacing";
+    }
+
+    // AI Overview
+    document.getElementById("deadlineAiOverviewText").textContent = data.ai_overview;
+
+    // Render 16-Week Heatmap
+    const calGrid = document.getElementById("calendarTimelineGrid");
+    if (calGrid && data.weeks) {
+      const maxScore = Math.max(...data.weeks.map(w => w.total_score), 8.0);
+      calGrid.innerHTML = data.weeks.map(w => {
+        const barPct = Math.min(100, Math.round((w.total_score / maxScore) * 100));
+        return `
+          <div class="timeline-week-col timeline-severity-${w.severity}">
+            <div class="timeline-week-header">
+              <span class="timeline-week-title">${w.label}</span>
+              <span class="timeline-badge-pill">${w.deadlines.length} Item${w.deadlines.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="timeline-week-dates">${w.date_range}</div>
+            <div class="timeline-bar-wrapper">
+              <div class="timeline-bar" style="width: ${barPct}%;"></div>
+            </div>
+            <div class="timeline-items-summary">
+              ${w.deadlines.slice(0, 3).map(d => `
+                <div class="timeline-item-micro ${d.weight.toLowerCase() === 'major' ? 'major' : ''}" title="${escapeHtml(d.course)} - ${escapeHtml(d.type)}">
+                  ${escapeHtml(d.course.split(' ')[0])}: ${escapeHtml(d.type)}
+                </div>
+              `).join("")}
+              ${w.deadlines.length > 3 ? `<span style="font-size:0.68rem; color:var(--text-light);">+${w.deadlines.length - 3} more</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // Render Collision Hotspots List
+    const hotspotsList = document.getElementById("collisionHotspotsList");
+    const collisionCardsSection = document.getElementById("collisionCardsSection");
+    const collisionWeeks = (data.weeks || []).filter(w => w.is_collision);
+
+    if (hotspotsList) {
+      if (collisionWeeks.length === 0) {
+        hotspotsList.innerHTML = `
+          <div class="diagnostic-box good" style="margin: 0;">
+            <div class="diagnostic-header">
+              <div class="diagnostic-title">
+                <span class="diagnostic-icon">✅</span>
+                <span>No Critical Deadline Collisions Detected</span>
+              </div>
+              <span class="badge badge-success">Schedule Balanced</span>
+            </div>
+            <p class="diagnostic-desc">All submitted exams, projects, and assignments maintain healthy temporal distribution with adequate recovery spacing for students.</p>
+          </div>
+        `;
+      } else {
+        hotspotsList.innerHTML = collisionWeeks.map(w => `
+          <div class="collision-hotspot-card">
+            <div class="hotspot-header">
+              <span class="hotspot-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                ${w.label} (${w.date_range}) — ${w.major_count} Major Deliverables Overload
+              </span>
+              <span class="badge badge-danger">Score: ${w.total_score} pts</span>
+            </div>
+            <div class="hotspot-courses-grid">
+              ${w.deadlines.map(d => `
+                <div class="hotspot-course-card">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="hotspot-course-name">${escapeHtml(d.course)}</span>
+                    <span class="badge ${d.weight.toLowerCase() === 'major' ? 'badge-danger' : 'badge-neutral'}">${d.weight}</span>
+                  </div>
+                  <div class="hotspot-course-meta"><strong>${escapeHtml(d.type)}</strong> &bull; Due ${d.date}</div>
+                  ${d.notes ? `<div style="font-size:0.72rem; color:var(--text-light);">${escapeHtml(d.notes)}</div>` : ''}
+                </div>
+              `).join("")}
+            </div>
+            <div class="hotspot-recom-box">
+              <strong>💡 AI Rescheduling Strategy for Department Faculty:</strong>
+              <div>${escapeHtml(w.recommendation || `Stagger non-exam deadlines to adjacent lighter weeks to relieve concurrent cognitive pressure.`)}</div>
+            </div>
+          </div>
+        `).join("");
+      }
+    }
+  }
+
+
+  // ========================================================================
+  // 13. MODULE 3: COURSE HANDOVER NOTES GENERATOR LOGIC
+  // ========================================================================
+  const hoCourseCode = document.getElementById("hoCourseCode");
+  const hoTerm = document.getElementById("hoTerm");
+  const hoOutcomes = document.getElementById("hoOutcomes");
+  const hoTopics = document.getElementById("hoTopics");
+  const hoPastQuestions = document.getElementById("hoPastQuestions");
+  const hoAvgGrade = document.getElementById("hoAvgGrade");
+  const hoMinGrade = document.getElementById("hoMinGrade");
+  const hoMaxGrade = document.getElementById("hoMaxGrade");
+  const hoPassRate = document.getElementById("hoPassRate");
+  const hoInstructorNotes = document.getElementById("hoInstructorNotes");
+  const hoImportCurrentExamBtn = document.getElementById("hoImportCurrentExamBtn");
+
+  const presetHandoverCSE220 = document.getElementById("presetHandoverCSE220");
+  const presetHandoverCSE311 = document.getElementById("presetHandoverCSE311");
+  const clearHandoverBtn = document.getElementById("clearHandoverBtn");
+
+  const generateHandoverBtn = document.getElementById("generateHandoverBtn");
+  const handoverStatusNotice = document.getElementById("handoverStatusNotice");
+  const handoverEmptyState = document.getElementById("handoverEmptyState");
+  const handoverDocumentWrapper = document.getElementById("handoverDocumentWrapper");
+  const handoverActionButtons = document.getElementById("handoverActionButtons");
+
+  const copyHandoverBtn = document.getElementById("copyHandoverBtn");
+  const exportHandoverBtn = document.getElementById("exportHandoverBtn");
+  const printHandoverBtn = document.getElementById("printHandoverBtn");
+
+  let latestHandoverData = null;
+
+  const HANDOVER_PRESETS = {
+    cse220: {
+      course: "CSE220: Data Structures & Algorithms",
+      term: "Spring 2027",
+      outcomes: "LO1: Understand foundational data structures, pointers, and memory layout tradeoffs\nLO2: Implement and evaluate asymptotic complexity of sorting and searching algorithms\nLO3: Apply balanced search trees, priority queues, and hashing to solve real-world problems\nLO4: Design graph traversal and shortest-path algorithms for network applications",
+      topics: "Module 1: Pointer arithmetic, dynamic memory, struct alignment\nModule 2: Linked Lists (singly, doubly, circular, sentinel nodes)\nModule 3: Stacks & Queues (array & linked implementations, expression evaluation)\nModule 4: Recursion & Backtracking (tree traversal, N-Queens)\nModule 5: Trees (BST, AVL balancing rotations, Heaps & Priority Queues)\nModule 6: Graphs (BFS/DFS, Dijkstra, Prim/Kruskal MST)\nModule 7: Hashing (Chaining, Open Addressing, Linear/Quadratic Probing)",
+      past_questions: "1. Trace memory allocation and show stack/heap pointers after deleting the second node in a doubly linked list.\n2. Prove the asymptotic runtime of AVL self-balancing after inserting keys [14, 17, 11, 7, 53, 4] using recurrence relations.\n3. Implement Dijkstra's algorithm using a min-heap priority queue and explain time complexity.\n4. Explain why open addressing with linear probing causes primary clustering.",
+      grade_avg: "72%",
+      grade_min: "38%",
+      grade_max: "98%",
+      grade_pass: "84%",
+      notes: "Students consistently stumble with pointer manipulation and segfaults in linked lists during the first midterm. Make sure to teach box-and-pointer memory tracing explicitly in class. Recursion trees also cause panic — emphasize Master Theorem early. Skip advanced binomial heaps as they never get tested well. TAs grade Big-O proofs too harshly, so ensure you distribute an exact partial credit key for O(N log N) vs O(N^2) brute force."
+    },
+    cse311: {
+      course: "CSE311: Database Management Systems",
+      term: "Spring 2027",
+      outcomes: "LO1: Design conceptual entity-relationship diagrams and translate to relational schemas\nLO2: Apply relational algebra and normal forms (1NF through BCNF) for dependency preservation\nLO3: Write optimized SQL queries, transactions, and index structures (B+ Trees)\nLO4: Evaluate ACID properties, two-phase locking (2PL), and crash recovery protocols",
+      topics: "Module 1: Relational Model & Relational Algebra\nModule 2: ER Diagrams & Schema Mapping\nModule 3: Functional Dependencies & Normalization (3NF/BCNF)\nModule 4: SQL & Query Execution Trees\nModule 5: Storage & B+ Tree Indexing\nModule 6: Transaction Processing & ACID Guarantees\nModule 7: Concurrency Control (2PL, Strict 2PL, Deadlock Detection)",
+      past_questions: "1. Given relation R(A,B,C,D,E) with FDs {A->B, BC->D, D->E}, decompose R into BCNF. Is the decomposition dependency-preserving?\n2. Convert SQL query with sub-select into canonical relational algebra tree and apply heuristic push-down optimization.\n3. Draw the B+ tree resulting from deleting key 45 from the given order-4 tree.\n4. Show a schedule that is conflict serializable but not recoverable under basic two-phase locking.",
+      grade_avg: "75%",
+      grade_min: "44%",
+      grade_max: "96%",
+      grade_pass: "88%",
+      notes: "BCNF decomposition questions cause 60% of exam mark losses — emphasize closure computation algorithms step-by-step. Query optimization trees test very well and students enjoy visual relational algebra. Warning: in project grading, TAs often overlook transaction rollback handling in PHP/Node.js submissions; mandate a standardized testing script."
+    }
+  };
+
+  function populateHandoverForm(preset) {
+    if (hoCourseCode) hoCourseCode.value = preset.course;
+    if (hoTerm) hoTerm.value = preset.term;
+    if (hoOutcomes) hoOutcomes.value = preset.outcomes;
+    if (hoTopics) hoTopics.value = preset.topics;
+    if (hoPastQuestions) hoPastQuestions.value = preset.past_questions;
+    if (hoAvgGrade) hoAvgGrade.value = preset.grade_avg;
+    if (hoMinGrade) hoMinGrade.value = preset.grade_min;
+    if (hoMaxGrade) hoMaxGrade.value = preset.grade_max;
+    if (hoPassRate) hoPassRate.value = preset.grade_pass;
+    if (hoInstructorNotes) hoInstructorNotes.value = preset.notes;
+  }
+
+  presetHandoverCSE220?.addEventListener("click", () => {
+    populateHandoverForm(HANDOVER_PRESETS.cse220);
+    showToast("Loaded 🌟 CSE220 Data Structures handover preset!");
+    generateHandoverBtn?.click();
+  });
+
+  presetHandoverCSE311?.addEventListener("click", () => {
+    populateHandoverForm(HANDOVER_PRESETS.cse311);
+    showToast("Loaded ⚡ CSE311 Database Systems handover preset!");
+    generateHandoverBtn?.click();
+  });
+
+  clearHandoverBtn?.addEventListener("click", () => {
+    if (hoCourseCode) hoCourseCode.value = "";
+    if (hoTerm) hoTerm.value = "";
+    if (hoOutcomes) hoOutcomes.value = "";
+    if (hoTopics) hoTopics.value = "";
+    if (hoPastQuestions) hoPastQuestions.value = "";
+    if (hoAvgGrade) hoAvgGrade.value = "";
+    if (hoMinGrade) hoMinGrade.value = "";
+    if (hoMaxGrade) hoMaxGrade.value = "";
+    if (hoPassRate) hoPassRate.value = "";
+    if (hoInstructorNotes) hoInstructorNotes.value = "";
+    handoverEmptyState?.classList.remove("hidden");
+    handoverDocumentWrapper?.classList.add("hidden");
+    if (handoverActionButtons) handoverActionButtons.style.display = "none";
+    showToast("Cleared handover form.");
+  });
+
+  // Pull questions currently in Exam tab
+  hoImportCurrentExamBtn?.addEventListener("click", () => {
+    const examQuestions = questionsInput?.value?.trim();
+    if (examQuestions) {
+      hoPastQuestions.value = examQuestions;
+      showToast("Imported questions from Exam Quality Audit tab!");
+    } else {
+      showToast("No questions found in the Exam Quality tab to import.", true);
+    }
+  });
+
+  // Generate Handover Brief Action
+  generateHandoverBtn?.addEventListener("click", async () => {
+    const course = hoCourseCode?.value?.trim() || "Academic Course";
+    const term = hoTerm?.value?.trim() || "Upcoming Semester";
+    const outcomes = hoOutcomes?.value?.trim();
+    const topics = hoTopics?.value?.trim();
+    const past_questions = hoPastQuestions?.value?.trim();
+    const instructor_notes = hoInstructorNotes?.value?.trim();
+
+    if (!course) {
+      alert("Please enter a course code and title.");
+      hoCourseCode?.focus();
+      return;
+    }
+
+    generateHandoverBtn.disabled = true;
+    generateHandoverBtn.innerHTML = `<span class="btn-spinner"></span> Synthesizing Handover Brief...`;
+    handoverStatusNotice.className = "status-notice loading";
+    handoverStatusNotice.textContent = "Analyzing historical syllabus, exam cognitive patterns, and faculty notes...";
+    handoverStatusNotice.classList.remove("hidden");
+
+    const payload = {
+      course_name: course,
+      course_code: course.split(":")[0].trim(),
+      term: term,
+      outcomes: outcomes,
+      syllabus_topics: topics,
+      past_questions: past_questions,
+      grade_summary: {
+        avg: hoAvgGrade?.value || "72%",
+        min: hoMinGrade?.value || "38%",
+        max: hoMaxGrade?.value || "98%",
+        pass_rate: hoPassRate?.value || "84%"
+      },
+      instructor_notes: instructor_notes
+    };
+
+    try {
+      const res = await fetch("/api/generate-handover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+
+      latestHandoverData = data;
+      renderHandoverBrief(data);
+
+      handoverStatusNotice.className = "status-notice success";
+      handoverStatusNotice.textContent = "1-Page Faculty Handover Brief Generated Successfully!";
+      setTimeout(() => handoverStatusNotice.classList.add("hidden"), 3500);
+    } catch (err) {
+      handoverStatusNotice.className = "status-notice error";
+      handoverStatusNotice.textContent = `Error: ${err.message}`;
+    } finally {
+      generateHandoverBtn.disabled = false;
+      generateHandoverBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        <span>✨ Synthesize 1-Page Handover Brief</span>`;
+    }
+  });
+
+  function renderHandoverBrief(data) {
+    handoverEmptyState?.classList.add("hidden");
+    handoverDocumentWrapper?.classList.remove("hidden");
+    if (handoverActionButtons) handoverActionButtons.style.display = "flex";
+
+    // Header & Meta
+    document.getElementById("briefDocCourseTitle").textContent = data.course_name;
+    document.getElementById("briefDocTerm").textContent = hoTerm?.value || "Spring 2027";
+    document.getElementById("briefDocDate").textContent = data.generated_at || new Date().toLocaleDateString();
+    document.getElementById("briefDocEngineTag").textContent = data.engine || "AI Synthesized";
+
+    // Quick Stats
+    const stats = data.quick_stats || {};
+    document.getElementById("hmRigor").textContent = stats.estimated_rigor || "High (Core Gateway)";
+    document.getElementById("hmTheoryCoding").textContent = stats.math_vs_coding_ratio || "35% Math / 65% Code";
+    document.getElementById("hmQuizPace").textContent = stats.recommended_quiz_frequency || "Bi-Weekly";
+
+    // Section 1: Overview & Curriculum Role
+    document.getElementById("briefOverviewText").textContent = data.course_overview;
+    document.getElementById("briefCurriculumRole").innerHTML = `<strong>Role in Curriculum:</strong> ${escapeHtml(data.curriculum_role || "Essential departmental prerequisite.")}`;
+
+    // Section 2: Tricky Topics
+    const trickyGrid = document.getElementById("briefTrickyTopicsGrid");
+    const trickyList = data.tricky_topics || data.historically_tricky_topics || [];
+    if (trickyGrid) {
+      if (trickyList.length === 0) {
+        trickyGrid.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem; padding:0.5rem 0;">No historical stumbling blocks identified.</p>`;
+      } else {
+        trickyGrid.innerHTML = trickyList.map(t => {
+          const topicName = typeof t === 'string' ? t : (t.topic || t.name || "Core Concept");
+          const diff = typeof t === 'object' ? (t.difficulty_level || t.difficulty || "High") : "High";
+          const pitfall = typeof t === 'object' ? (t.pitfall || t.description || "Common student misconception.") : "Frequent conceptual confusion during exam problems.";
+          const evidence = typeof t === 'object' ? (t.evidence || t.historical_evidence || "Documented in past exam patterns.") : "Documented in past exam records.";
+          const isVeryHigh = String(diff).toLowerCase().includes("very");
+          return `
+            <div class="tricky-topic-card ${isVeryHigh ? 'very-high' : ''}">
+              <div class="tricky-topic-header">
+                <span class="tricky-topic-name">⚠️ ${escapeHtml(topicName)}</span>
+                <span class="badge ${isVeryHigh ? 'badge-danger' : 'badge-warning'}">${escapeHtml(diff)} Difficulty</span>
+              </div>
+              <p class="tricky-pitfall-text"><strong>Common Student Pitfall:</strong> ${escapeHtml(pitfall)}</p>
+              <div class="tricky-evidence-box"><strong>Historical Evidence:</strong> ${escapeHtml(evidence)}</div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    // Section 3: Exam Style
+    const examStyle = data.exam_style_notes || data.exam_style || {};
+    if (typeof examStyle === 'string') {
+      document.getElementById("briefBloomsDist").textContent = "35% Apply, 40% Analyze, 25% Remember/Understand";
+      document.getElementById("briefTypicalFormat").textContent = examStyle;
+      document.getElementById("briefQuestionTypes").textContent = "Analytical derivations, code tracing, and design problems.";
+      document.getElementById("briefGradingPitfall").textContent = "Standardize TA grading rubrics with exact partial credit breakdowns.";
+    } else {
+      document.getElementById("briefBloomsDist").textContent = examStyle.blooms_distribution || examStyle.blooms || "15% Remember/Understand, 40% Apply, 35% Analyze, 10% Create";
+      document.getElementById("briefTypicalFormat").textContent = examStyle.typical_format || examStyle.format || "20% Tracing / MCQs, 50% Algorithm Design, 30% Implementation";
+      document.getElementById("briefQuestionTypes").textContent = examStyle.common_question_types || examStyle.question_types || "Memory diagrams, asymptotic proofs, edge-case implementation.";
+      document.getElementById("briefGradingPitfall").textContent = examStyle.grading_pitfalls || examStyle.grading_notes || "Standardize partial credit for brute force vs optimal algorithms.";
+    }
+
+    // Section 4: Focus Areas
+    const focusList = document.getElementById("briefFocusList");
+    const focusItems = data.suggested_focus || data.suggested_focus_areas || data.focus_areas || [];
+    if (focusList) {
+      if (focusItems.length === 0) {
+        focusList.innerHTML = `<p style="color:var(--text-muted); font-size:0.85rem; padding:0.5rem 0;">No specific focus areas provided.</p>`;
+      } else {
+        focusList.innerHTML = focusItems.map(f => {
+          const fTitle = typeof f === 'string' ? f : (f.title || f.focus_area || "Instructional Focus");
+          const fAdvice = typeof f === 'object' ? (f.advice || f.recommendation || f.description || "Focus on early active learning and conceptual grounding.") : (f || "Focus on early active learning.");
+          const fTiming = typeof f === 'object' ? (f.timing || "Semester Action") : "Weeks 1–4";
+          return `
+            <div class="focus-item-card">
+              <div class="focus-item-top">
+                <span class="focus-item-title">🎯 ${escapeHtml(fTitle)}</span>
+                <span class="focus-timing-badge">${escapeHtml(fTiming)}</span>
+              </div>
+              <p class="focus-item-advice">${escapeHtml(fAdvice)}</p>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+  }
+
+  // Export Handover as Markdown
+  exportHandoverBtn?.addEventListener("click", () => {
+    if (!latestHandoverData) return;
+    const md = generateHandoverMarkdown(latestHandoverData);
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(latestHandoverData.course_code || 'course').toLowerCase()}_handover_brief.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded handover brief as Markdown file!");
+  });
+
+  // Copy Handover Text
+  copyHandoverBtn?.addEventListener("click", () => {
+    if (!latestHandoverData) return;
+    const md = generateHandoverMarkdown(latestHandoverData);
+    navigator.clipboard.writeText(md).then(() => {
+      showToast("Handover brief copied to clipboard!");
+    }).catch(() => {
+      showToast("Failed to copy to clipboard.", true);
+    });
+  });
+
+  // Print Handover
+  printHandoverBtn?.addEventListener("click", () => {
+    window.print();
+  });
+
+  function generateHandoverMarkdown(d) {
+    const stats = d.quick_stats || {};
+    const exam = d.exam_style_notes || {};
+    return `# Faculty Handover Brief: ${d.course_name}
+**Generated Date:** ${d.generated_at || 'September 2026'} | **Engine:** ${d.engine || 'ExamGuard AI'}
+
+---
+
+## 1. Course Overview & Curriculum Role
+${d.course_overview}
+
+**Role in Curriculum:**
+${d.curriculum_role || 'Core departmental course.'}
+
+- **Estimated Rigor:** ${stats.estimated_rigor || 'High'}
+- **Theory vs Coding Ratio:** ${stats.math_vs_coding_ratio || '35% Theory / 65% Coding'}
+- **Recommended Quiz Cadence:** ${stats.recommended_quiz_frequency || 'Bi-Weekly'}
+
+---
+
+## 2. Historically Tricky Topics & Student Pitfalls
+${(d.tricky_topics || []).map(t => `### ⚠️ ${t.topic} (${t.difficulty_level || 'High'} Difficulty)\n- **Student Pitfall:** ${t.pitfall}\n- **Historical Evidence:** ${t.evidence}`).join("\n\n")}
+
+---
+
+## 3. Exam Style & Cognitive Culture
+- **Bloom's Cognitive Distribution:** ${exam.blooms_distribution || 'N/A'}
+- **Typical Exam Format:** ${exam.typical_format || 'N/A'}
+- **Common Question Archetypes:** ${exam.common_question_types || 'N/A'}
+- **TA Grading Consistency Warning:** ${exam.grading_pitfalls || 'N/A'}
+
+---
+
+## 4. Suggested Focus Areas for Incoming Faculty
+${(d.suggested_focus || []).map(f => `### 🎯 ${f.title} [${f.timing || 'Semester'}]\n${f.advice}`).join("\n\n")}
+
+---
+*Generated by ExamGuard — AUST CSE Carnival AI Build Hackathon*
+`;
+  }
+
   // Auto-populate default count
   updateCounts();
 });
+
 
