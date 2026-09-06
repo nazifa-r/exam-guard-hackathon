@@ -24,7 +24,7 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from datetime import datetime, timedelta
 from collections import defaultdict
 import pypdf
@@ -50,7 +50,14 @@ QUESTION_BANK_PATH = BASE_DIR / "sample_data" / "previous_questions.json"
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+    return response
 
 BLOOM_LEVELS = [
     "Remember", "Understand", "Apply", "Analyze", "Evaluate", "Create"
@@ -418,7 +425,15 @@ def generate_simulation_data(learning_outcomes: list[str], questions: list[str],
 
 @app.route("/")
 def index():
+    dist_index = BASE_DIR / "static" / "dist" / "index.html"
+    if dist_index.exists():
+        return send_from_directory(BASE_DIR / "static" / "dist", "index.html")
     return render_template("index.html")
+
+
+@app.route("/assets/<path:path>")
+def serve_assets(path):
+    return send_from_directory(BASE_DIR / "static" / "dist" / "assets", path)
 
 
 @app.route("/api/status", methods=["GET"])
@@ -961,6 +976,7 @@ def analyze_deadline_collisions(deadlines: list[dict], client=None) -> dict:
         weeks_result.append(week_obj)
 
     # Pre-compute heuristic advice so the user gets instant, accurate feedback
+    ai_overview = "All deadlines are distributed evenly without critical overlapping clusters."
     if collision_weeks:
         ai_overview = f"Detected {len(collision_weeks)} high-risk collision week(s) causing concurrent major deliverables across multiple departments. Inter-departmental date stagger recommended to prevent student cognitive burnout."
         for w in weeks_result:
