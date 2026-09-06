@@ -23,5 +23,30 @@
     "year": 2024,
     "course": "CSE220 - Data Structures",
     "text": "What is the time complexity of inserting an element into a balanced binary search tree?"
+  },
+  {
+    "year": 2023,
+    "course": "CSE311 - Database Management Systems",
+    "text": "Given a relation R(A, B, C, D) with functional dependencies {A -> B, B -> C, C -> D}, determine all candidate keys and decompose into 3NF."
+  },
+  {
+    "year": 2024,
+    "course": "CSE311 - Database Management Systems",
+    "text": "Write a relational algebra expression to retrieve students who have enrolled in all 400-level CS courses."
+  },
+  {
+    "year": 2023,
+    "course": "CSE321 - Operating Systems",
+    "text": "Explain the four Coffman conditions necessary for deadlock to occur and describe one technique for deadlock prevention."
+  },
+  {
+    "year": 2024,
+    "course": "CSE321 - Operating Systems",
+    "text": "Given a page reference string, compute page faults under FIFO, LRU, and Optimal page replacement algorithms."
+  },
+  {
+    "year": 2024,
+    "course": "CSE 220",
+    "text": "Define a stack and give two real-world computing use cases. Given an array, implement binary search and analyze its worst-case time complexity. Explain how a hash table resolves collisions using open addressing with linear probing."
   }
 ]

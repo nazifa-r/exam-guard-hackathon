@@ -245,6 +245,10 @@
               <span class="badge badge-success" id="resultsModelBadge">Live Gemini AI</span>
             </div>
             <div class="toolbar-right">
+              <button type="button" class="btn btn-accent btn-sm" id="archiveExamBtn" title="Save all current questions to the past question bank">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="m10 12 2 2 4-4"/></svg>
+                Archive This Exam
+              </button>
               <button type="button" class="btn btn-secondary btn-sm" id="printRubricBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Print TA Guide
@@ -332,6 +336,78 @@
         </div>
       </section>
     </div>
+
+    <!-- Question Bank Management Panel -->
+    <section class="panel question-bank-panel" id="questionBankPanel">
+      <div class="panel-header" id="bankPanelHeader" style="cursor:pointer;" onclick="toggleBankPanel()">
+        <div class="panel-title-group">
+          <span class="step-num">🗄</span>
+          <div>
+            <h2 class="panel-title">Past Question Bank</h2>
+            <p class="panel-desc">View, add, or remove archived exam questions used for duplicate detection.</p>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span class="badge badge-neutral" id="bankCountBadge">Loading...</span>
+          <svg id="bankChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transition:transform 0.3s;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+
+      <div id="bankPanelBody" class="hidden">
+        <!-- Add Question Form (tabbed) -->
+        <div class="bank-add-form">
+          <div class="bank-add-tabs">
+            <button type="button" class="bank-tab active" id="bankTabText" onclick="switchBankTab('text')">✏️ Manual Text</button>
+            <button type="button" class="bank-tab" id="bankTabDoc" onclick="switchBankTab('doc')">📄 Upload Document</button>
+          </div>
+
+          <!-- Tab: Manual text -->
+          <div id="bankTabTextBody">
+            <div class="bank-add-row">
+              <input type="number" id="bankAddYear" class="bank-input" placeholder="Year (e.g. 2024)" value="2024" min="2000" max="2099" style="width:110px;">
+              <input type="text" id="bankAddCourse" class="bank-input" placeholder="Course (e.g. CSE220)" style="width:140px;">
+              <input type="text" id="bankAddText" class="bank-input" placeholder="Paste or type the past question here..." style="flex:1;">
+              <button type="button" class="btn btn-primary btn-sm" id="bankAddBtn">Add to Bank</button>
+            </div>
+          </div>
+
+          <!-- Tab: Document upload -->
+          <div id="bankTabDocBody" class="hidden">
+            <div class="bank-add-row" style="margin-bottom:0.6rem;">
+              <input type="number" id="bankDocYear" class="bank-input" placeholder="Year" value="2024" min="2000" max="2099" style="width:110px;">
+              <input type="text" id="bankDocCourse" class="bank-input" placeholder="Course (e.g. CSE220)" style="flex:1;">
+            </div>
+            <div class="bank-doc-dropzone" id="bankDocDropzone">
+              <input type="file" id="bankDocFileInput" accept=".pdf,.docx,.txt,.md" class="hidden">
+              <div class="bank-doc-dropzone-inner" id="bankDocDropzoneInner">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <p class="bank-doc-main-text">Drag &amp; drop exam paper here, or <button type="button" class="bank-doc-browse-btn" id="bankDocBrowseBtn">browse</button></p>
+                <p class="bank-doc-sub-text">Supports PDF, DOCX, TXT, Markdown — questions extracted automatically</p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="bankDocUploadBtn" disabled style="margin-top:0.6rem;width:100%;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Extract &amp; Add Questions to Bank
+            </button>
+          </div>
+
+          <div id="bankAddFeedback" style="margin-top:0.5rem;"></div>
+        </div>
+
+
+        <!-- Filter & Search -->
+        <div class="bank-filter-row">
+          <input type="text" id="bankSearchInput" class="bank-input" placeholder="🔍 Search questions in bank..." style="flex:1;">
+          <select id="bankCourseFilter" class="bank-input" style="width:160px;">
+            <option value="">All Courses</option>
+          </select>
+          <span class="badge badge-neutral" id="bankFilterCount"></span>
+        </div>
+
+        <!-- Questions List -->
+        <div id="bankQuestionsList" class="bank-questions-list"></div>
+      </div>
+    </section>
   </main>
 
   <!-- Suggestion Modal -->
@@ -347,6 +423,12 @@
         <button type="button" class="btn btn-primary" id="modalApplyBtn">Append to Draft Exam</button>
       </div>
     </div>
+  </div>
+
+  <!-- Archive Success Toast -->
+  <div id="archiveToast" class="archive-toast hidden">
+    <span class="archive-toast-icon">✅</span>
+    <span id="archiveToastMsg">Exam questions archived successfully!</span>
   </div>
 
   <footer class="app-footer">

@@ -347,6 +347,9 @@ document.addEventListener("DOMContentLoaded", () => {
     renderOBECoverage(data.coverage_report, los);
     renderBloomsHierarchy(data.coverage_report.bloom_distribution);
     renderSimilarityFlags(flags);
+    // Update bank size inline if the clean-state message was rendered
+    const bankInline = document.getElementById("bankSizeInline");
+    if (bankInline && data.bank_size !== undefined) bankInline.textContent = data.bank_size;
     renderRubrics(data.rubrics);
     renderQuestionAudit(data.question_analysis, questions);
   }
@@ -446,32 +449,96 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 6c. Similarity & Leaks
+  // 6c. Similarity & Leaks (Enhanced)
   function renderSimilarityFlags(flags) {
     const el = document.getElementById("similarityContent");
     el.innerHTML = "";
 
     if (!flags || flags.length === 0) {
-      el.innerHTML = `<p style="color:var(--success-text);font-size:0.88rem;">✅ <strong>Integrity Verified:</strong> No high-confidence duplicates detected against past semester question archives.</p>`;
+      el.innerHTML = `
+        <div class="similarity-clean">
+          <div class="similarity-clean-icon">🛡️</div>
+          <strong>Integrity Verified</strong>
+          <p>No high-confidence duplicates detected against past semester question archives. All <span id="bankSizeInline">—</span> archived questions were checked.</p>
+        </div>`;
       return;
     }
 
+    // Summary bar
+    const highCount = flags.filter(f => (f.similarity||"").toLowerCase() === "high").length;
+    const medCount = flags.length - highCount;
+    const summaryBar = document.createElement("div");
+    summaryBar.className = "similarity-summary-bar";
+    summaryBar.innerHTML = `
+      <div class="sim-summary-item">
+        <span class="sim-summary-count danger">${highCount}</span>
+        <span class="sim-summary-label">Exact / Near-Exact Duplicates</span>
+      </div>
+      <div class="sim-summary-divider"></div>
+      <div class="sim-summary-item">
+        <span class="sim-summary-count warn">${medCount}</span>
+        <span class="sim-summary-label">Conceptual Paraphrases</span>
+      </div>
+      <div class="sim-summary-divider"></div>
+      <div class="sim-summary-item">
+        <span class="sim-summary-count neutral">${flags.length}</span>
+        <span class="sim-summary-label">Total Flags Raised</span>
+      </div>
+    `;
+    el.appendChild(summaryBar);
+
     flags.forEach(flag => {
       const card = document.createElement("div");
-      card.className = "flag-card";
       const isHigh = (flag.similarity || "").toLowerCase() === "high";
+      card.className = `flag-card ${isHigh ? "flag-high" : "flag-medium"}`;
+
+      const overlapLabel = flag.overlap_type || (isHigh ? "Exact Duplicate" : "Conceptual Paraphrase");
+      const concept = flag.concept_repeated || "";
+      const recommendation = flag.recommendation || "";
 
       card.innerHTML = `
         <div class="flag-header">
-          <strong>${flag.question_index}</strong>
-          <span class="badge ${isHigh ? 'badge-danger' : 'badge-warning'}">${flag.similarity.toUpperCase()} OVERLAP RISK</span>
+          <div class="flag-header-left">
+            <span class="flag-q-badge">${flag.question_index}</span>
+            <span class="flag-overlap-type ${isHigh ? 'type-high' : 'type-medium'}">${overlapLabel}</span>
+            ${concept ? `<span class="flag-concept-pill">📌 ${concept}</span>` : ""}
+          </div>
+          <span class="badge ${isHigh ? 'badge-danger' : 'badge-warning'}">${isHigh ? '🚨 HIGH RISK' : '⚠️ MEDIUM RISK'}</span>
         </div>
-        <div class="flag-matched-box">
-          Matched Archive: ${flag.matched_with}
+
+        <div class="flag-questions-grid">
+          <div class="flag-question-block draft-block">
+            <div class="flag-block-label">📝 Draft Question</div>
+            <div class="flag-question-text">${flag.draft_question || flag.question_index}</div>
+          </div>
+          <div class="flag-vs-divider">VS</div>
+          <div class="flag-question-block archive-block">
+            <div class="flag-block-label">🗄️ Matched Archive Question</div>
+            <div class="flag-question-text archive-text">${flag.matched_with}</div>
+          </div>
         </div>
-        <div style="font-size:0.8rem;color:var(--text-muted);">${flag.note || ''}</div>
+
+        ${flag.note ? `
+        <div class="flag-note-row">
+          <span class="flag-note-icon">ℹ️</span>
+          <span class="flag-note-text">${flag.note}</span>
+        </div>` : ""}
+
+        ${recommendation ? `
+        <div class="flag-recommendation-row">
+          <span class="flag-rec-icon">💡</span>
+          <div>
+            <span class="flag-rec-label">AI Recommendation:</span>
+            <span class="flag-rec-text">${recommendation}</span>
+          </div>
+        </div>` : ""}
+
         <div class="flag-action-row">
-          <button type="button" class="btn btn-secondary btn-xs generate-alt-btn" data-qidx="${flag.question_index}" data-match="${encodeURIComponent(flag.matched_with)}">✨ Generate Leak-Free Variant</button>
+          <button type="button" class="btn btn-primary btn-xs generate-alt-btn"
+            data-qidx="${flag.question_index}"
+            data-match="${encodeURIComponent(flag.matched_with)}">
+            ✨ Generate Leak-Free Variant
+          </button>
         </div>
       `;
       el.appendChild(card);
@@ -715,6 +782,305 @@ document.addEventListener("DOMContentLoaded", () => {
     URL.revokeObjectURL(url);
   });
 
+  // Archive This Exam button
+  const archiveExamBtn = document.getElementById("archiveExamBtn");
+  archiveExamBtn.addEventListener("click", async () => {
+    const questions = questionsInput.value.split("\n").map(s => s.trim()).filter(Boolean);
+    const course = courseNameInput.value.trim() || "Academic Course";
+    if (!questions.length) {
+      showToast("No questions to archive. Please enter exam questions first.", true);
+      return;
+    }
+
+    archiveExamBtn.disabled = true;
+    archiveExamBtn.innerHTML = `<span class="btn-spinner"></span> Archiving...`;
+    try {
+      const res = await fetch("/api/archive-exam", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ course_name: course, year: new Date().getFullYear(), questions })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Archive failed");
+      showToast(`✅ ${data.added} question${data.added !== 1 ? 's' : ''} archived! Bank now has ${data.total_bank_size} questions.`);
+      loadBankPanel(); // refresh bank display
+    } catch (err) {
+      showToast(`Archive failed: ${err.message}`, true);
+    } finally {
+      archiveExamBtn.disabled = false;
+      archiveExamBtn.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="m10 12 2 2 4-4"/></svg>
+        Archive This Exam`;
+    }
+  });
+
+  // ------------------------------------------------------------------------
+  // 9. Question Bank Management Panel
+  // ------------------------------------------------------------------------
+  let bankData = [];
+  let bankOpen = false;
+
+  window.toggleBankPanel = function() {
+    bankOpen = !bankOpen;
+    const body = document.getElementById("bankPanelBody");
+    const chevron = document.getElementById("bankChevron");
+    if (bankOpen) {
+      body.classList.remove("hidden");
+      chevron.style.transform = "rotate(180deg)";
+      loadBankPanel();
+    } else {
+      body.classList.add("hidden");
+      chevron.style.transform = "rotate(0deg)";
+    }
+  };
+
+  async function loadBankPanel() {
+    try {
+      const res = await fetch("/api/question-bank");
+      const data = await res.json();
+      bankData = data.questions || [];
+      const total = data.total || 0;
+      document.getElementById("bankCountBadge").textContent = `${total} Questions`;
+
+      // Populate course filter
+      const courseFilter = document.getElementById("bankCourseFilter");
+      const currentFilter = courseFilter.value;
+      courseFilter.innerHTML = `<option value="">All Courses</option>`;
+      (data.courses || []).forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c; opt.textContent = c;
+        courseFilter.appendChild(opt);
+      });
+      courseFilter.value = currentFilter;
+
+      // Update bankSizeInline in similarity section if it's visible
+      const bankInline = document.getElementById("bankSizeInline");
+      if (bankInline) bankInline.textContent = total;
+
+      renderBankList();
+    } catch(e) {
+      document.getElementById("bankCountBadge").textContent = "Error loading";
+    }
+  }
+
+  function renderBankList() {
+    const listEl = document.getElementById("bankQuestionsList");
+    const searchVal = (document.getElementById("bankSearchInput")?.value || "").toLowerCase().trim();
+    const courseVal = (document.getElementById("bankCourseFilter")?.value || "").toLowerCase().trim();
+
+    const filtered = bankData.filter((item, idx) => {
+      const textMatch = !searchVal || (item.text || "").toLowerCase().includes(searchVal);
+      const courseMatch = !courseVal || (item.course || "").toLowerCase() === courseVal;
+      return textMatch && courseMatch;
+    });
+
+    const countEl = document.getElementById("bankFilterCount");
+    if (countEl) countEl.textContent = filtered.length !== bankData.length ? `${filtered.length} shown` : "";
+
+    if (!filtered.length) {
+      listEl.innerHTML = `<div class="bank-empty">No questions match your search.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = "";
+    filtered.forEach((item) => {
+      // Find original index in bankData for deletion
+      const origIdx = bankData.indexOf(item);
+      const row = document.createElement("div");
+      row.className = "bank-q-row";
+      row.innerHTML = `
+        <div class="bank-q-meta">
+          <span class="bank-q-year">${item.year || '?'}</span>
+          <span class="bank-q-course">${item.course || 'General'}</span>
+        </div>
+        <div class="bank-q-text">${item.text}</div>
+        <button type="button" class="btn btn-danger-sm bank-delete-btn" data-idx="${origIdx}" title="Remove from bank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll(".bank-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        btn.disabled = true;
+        try {
+          const res = await fetch(`/api/question-bank/${idx}`, { method: "DELETE" });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || "Delete failed");
+          showToast(`Removed 1 question. Bank now has ${data.total} questions.`);
+          loadBankPanel();
+        } catch(e) {
+          showToast(`Delete failed: ${e.message}`, true);
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  // Bank search & filter
+  document.getElementById("bankSearchInput")?.addEventListener("input", renderBankList);
+  document.getElementById("bankCourseFilter")?.addEventListener("change", renderBankList);
+
+  // Add question to bank
+  document.getElementById("bankAddBtn")?.addEventListener("click", async () => {
+    const year = parseInt(document.getElementById("bankAddYear").value, 10) || new Date().getFullYear();
+    const course = document.getElementById("bankAddCourse").value.trim();
+    const text = document.getElementById("bankAddText").value.trim();
+    const feedbackEl = document.getElementById("bankAddFeedback");
+
+    if (!text) {
+      feedbackEl.innerHTML = `<span class="badge badge-danger">Please enter a question text.</span>`;
+      return;
+    }
+
+    const addBtn = document.getElementById("bankAddBtn");
+    addBtn.disabled = true;
+    try {
+      const res = await fetch("/api/question-bank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ year, course: course || "General", text })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Add failed");
+      feedbackEl.innerHTML = `<span class="badge badge-success">Added! Bank now has ${data.total} questions.</span>`;
+      document.getElementById("bankAddText").value = "";
+      loadBankPanel();
+    } catch(e) {
+      feedbackEl.innerHTML = `<span class="badge badge-danger">${e.message}</span>`;
+    } finally {
+      addBtn.disabled = false;
+    }
+  });
+
+  // Bank tab switching
+  window.switchBankTab = function(tab) {
+    const textTab = document.getElementById("bankTabText");
+    const docTab  = document.getElementById("bankTabDoc");
+    const textBody = document.getElementById("bankTabTextBody");
+    const docBody  = document.getElementById("bankTabDocBody");
+    const feedbackEl = document.getElementById("bankAddFeedback");
+    feedbackEl.innerHTML = "";
+
+    if (tab === "text") {
+      textTab.classList.add("active");
+      docTab.classList.remove("active");
+      textBody.classList.remove("hidden");
+      docBody.classList.add("hidden");
+    } else {
+      docTab.classList.add("active");
+      textTab.classList.remove("active");
+      docBody.classList.remove("hidden");
+      textBody.classList.add("hidden");
+    }
+  };
+
+  // Document upload tab: dropzone
+  let bankDocSelectedFile = null;
+  const bankDocDropzone   = document.getElementById("bankDocDropzone");
+  const bankDocFileInput  = document.getElementById("bankDocFileInput");
+  const bankDocBrowseBtn  = document.getElementById("bankDocBrowseBtn");
+  const bankDocUploadBtn  = document.getElementById("bankDocUploadBtn");
+  const bankDocDropzoneInner = document.getElementById("bankDocDropzoneInner");
+
+  function setDocFile(file) {
+    bankDocSelectedFile = file;
+    bankDocDropzoneInner.innerHTML = `
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <p class="bank-doc-main-text" style="color:var(--primary);font-weight:600;">${file.name}</p>
+      <p class="bank-doc-sub-text">${(file.size / 1024).toFixed(1)} KB — ready to extract</p>
+    `;
+    bankDocUploadBtn.disabled = false;
+  }
+
+  bankDocBrowseBtn?.addEventListener("click", () => bankDocFileInput?.click());
+  bankDocFileInput?.addEventListener("change", (e) => {
+    if (e.target.files.length) setDocFile(e.target.files[0]);
+  });
+  bankDocDropzone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    bankDocDropzone.classList.add("bank-doc-drag-over");
+  });
+  bankDocDropzone?.addEventListener("dragleave", () => {
+    bankDocDropzone.classList.remove("bank-doc-drag-over");
+  });
+  bankDocDropzone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    bankDocDropzone.classList.remove("bank-doc-drag-over");
+    if (e.dataTransfer.files.length) setDocFile(e.dataTransfer.files[0]);
+  });
+
+  // Upload & extract handler
+  bankDocUploadBtn?.addEventListener("click", async () => {
+    if (!bankDocSelectedFile) return;
+    const year   = document.getElementById("bankDocYear")?.value   || "2024";
+    const course = document.getElementById("bankDocCourse")?.value || "Academic Course";
+    const feedbackEl = document.getElementById("bankAddFeedback");
+
+    bankDocUploadBtn.disabled = true;
+    bankDocUploadBtn.innerHTML = `<span class="btn-spinner"></span> Extracting questions...`;
+    feedbackEl.innerHTML = "";
+
+    const formData = new FormData();
+    formData.append("file", bankDocSelectedFile);
+    formData.append("year", year);
+    formData.append("course", course);
+
+    try {
+      const res = await fetch("/api/question-bank/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      feedbackEl.innerHTML = `
+        <div class="bank-upload-result">
+          <span class="badge badge-success">✅ ${data.added} question${data.added !== 1 ? 's' : ''} added</span>
+          ${data.skipped ? `<span class="badge badge-warning">${data.skipped} duplicates skipped</span>` : ""}
+          <span class="badge badge-neutral">${data.total} total in bank</span>
+        </div>`;
+
+      // Reset dropzone
+      bankDocSelectedFile = null;
+      bankDocDropzoneInner.innerHTML = `
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p class="bank-doc-main-text">Drag &amp; drop exam paper here, or <button type="button" class="bank-doc-browse-btn" id="bankDocBrowseBtn">browse</button></p>
+        <p class="bank-doc-sub-text">Supports PDF, DOCX, TXT, Markdown — questions extracted automatically</p>
+      `;
+      // Re-attach browse button after innerHTML reset
+      document.getElementById("bankDocBrowseBtn")?.addEventListener("click", () => bankDocFileInput?.click());
+      bankDocFileInput.value = "";
+
+      loadBankPanel();
+    } catch (err) {
+      feedbackEl.innerHTML = `<span class="badge badge-danger">Error: ${err.message}</span>`;
+    } finally {
+      bankDocUploadBtn.disabled = false;
+      bankDocUploadBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Extract &amp; Add Questions to Bank`;
+    }
+  });
+
+  // Load bank count on page init
+  loadBankPanel();
+
+  // ------------------------------------------------------------------------
+  // 10. Toast Notification
+  // ------------------------------------------------------------------------
+  function showToast(msg, isError = false) {
+    const toast = document.getElementById("archiveToast");
+    const toastMsg = document.getElementById("archiveToastMsg");
+    toast.className = `archive-toast ${isError ? "toast-error" : ""}`;
+    toastMsg.textContent = msg;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 4000);
+  }
+
   // Auto-populate default count
   updateCounts();
 });
+
