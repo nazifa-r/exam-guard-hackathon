@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExamGuard — AI Exam Quality &amp; Grading Consistency Assistant</title>
+  <meta name="description" content="AI-powered assistant for university faculty to audit draft exams for curriculum alignment, Bloom's cognitive diversity, past-exam duplication, and consistent grading rubrics.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Top Navbar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-badge">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title-wrap">
+            <h1 class="brand-title">ExamGuard</h1>
+            <span class="hackathon-tag">AUST CSE Carnival</span>
+          </div>
+          <p class="brand-tagline">AI-Powered Exam Quality &amp; Assessment Consistency Assistant</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-indicator" id="engineStatus">
+          <span class="status-dot"></span>
+          <span class="status-text" id="engineText">Checking Engine...</span>
+        </div>
+        <a href="#quickPresets" class="btn btn-outline btn-sm">Load Demo Presets</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & Problem Context Banner -->
+  <div class="hero-strip">
+    <div class="hero-inner">
+      <div class="hero-lead">
+        <strong>The Problem:</strong> University faculty spend dozens of hours guessing if their exams truly align with course outcomes, balance cognitive rigor, avoid leaked past questions, and ensure fair grading across multi-TA sections.
+      </div>
+      <div class="hero-solution">
+        <strong>How ExamGuard Helps:</strong> Keep faculty in charge while AI performs instant multi-dimensional curriculum auditing, duplicate checking, and standardized rubric synthesis.
+      </div>
+    </div>
+  </div>
+
+  <main class="main-container">
+    <!-- Quick Demo Presets Bar -->
+    <section class="presets-card" id="quickPresets">
+      <div class="presets-header">
+        <div class="presets-label">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>One-Click Demo Presets for Judges:</span>
+        </div>
+        <span class="presets-hint">Click any scenario to immediately populate the form</span>
+      </div>
+      <div class="preset-buttons">
+        <button type="button" class="preset-btn featured" id="presetFlawed">
+          <span class="preset-badge badge-danger">Live Demo Choice</span>
+          <strong>🚨 Flawed Draft Exam (CSE220)</strong>
+          <small>1 Uncovered LO, 100% Rote Recall, 1 Historical Leak</small>
+        </button>
+        <button type="button" class="preset-btn" id="presetBalanced">
+          <span class="preset-badge badge-success">High Rigor</span>
+          <strong>🌟 Balanced Exam (CSE220)</strong>
+          <small>100% Outcome Coverage, High Bloom's Diversity, 0 Leaks</small>
+        </button>
+        <button type="button" class="preset-btn" id="presetDatabase">
+          <span class="preset-badge badge-info">Multi-Topic</span>
+          <strong>⚡ Database Systems (CSE311)</strong>
+          <small>BCNF, Relational Algebra, ACID Isolation Rubrics</small>
+        </button>
+      </div>
+    </section>
+
+    <!-- Ingestion Grid -->
+    <div class="workspace-grid">
+      <!-- Input Panel -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="step-num">1</span>
+            <div>
+              <h2 class="panel-title">Assessment Ingestion</h2>
+              <p class="panel-desc">Paste syllabus outcomes &amp; draft questions or upload documents.</p>
+            </div>
+          </div>
+          <div class="input-mode-toggle">
+            <button type="button" class="mode-btn active" id="modePasteBtn">Direct Text</button>
+            <button type="button" class="mode-btn" id="modeUploadBtn">Document Upload</button>
+          </div>
+        </div>
+
+        <form id="examForm" onsubmit="return false;">
+          <div class="form-row">
+            <div class="form-group flex-2">
+              <label for="course_name">Course Identifier &amp; Title</label>
+              <input id="course_name" type="text" placeholder="e.g. CSE220 — Data Structures &amp; Algorithms" value="CSE220 — Data Structures">
+            </div>
+            <div class="form-group flex-1">
+              <label for="exam_title">Exam Cycle</label>
+              <input id="exam_title" type="text" placeholder="e.g. Midterm 2026" value="Midterm Examination">
+            </div>
+          </div>
+
+          <!-- Direct Text Mode -->
+          <div id="textModeContainer">
+            <div class="form-group">
+              <div class="textarea-header">
+                <label for="los">Course Learning Outcomes (LOs)</label>
+                <span class="count-pill" id="loCount">0 LOs</span>
+              </div>
+              <textarea id="los" rows="6" placeholder="Enter one outcome per line:&#10;LO1: Understand core data structures and their memory tradeoffs&#10;LO2: Implement and analyze sorting and searching algorithms&#10;LO3: Apply balanced trees and hashing to solve real-world problems"></textarea>
+              <span class="field-hint">Accreditation tip: Use distinct action verbs per outcome.</span>
+            </div>
+
+            <div class="form-group">
+              <div class="textarea-header">
+                <label for="questions">Draft Exam Questions</label>
+                <span class="count-pill" id="questionCount">0 Questions</span>
+              </div>
+              <textarea id="questions" rows="8" placeholder="Enter one question per line:&#10;Q1: Define a stack and give two real-world use cases.&#10;Q2: Given an array, implement binary search and analyze its worst-case time complexity.&#10;Q3: Explain how a hash table resolves collisions using open addressing."></textarea>
+              <span class="field-hint">Questions will be evaluated against past years' question archives.</span>
+            </div>
+          </div>
+
+          <!-- Document Upload Mode -->
+          <div id="uploadModeContainer" class="hidden">
+            <div class="upload-dropzone" id="dropZone">
+              <input type="file" id="docFileInput" accept=".pdf,.docx,.txt,.md" class="hidden">
+              <div class="dropzone-content">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="dropzone-main-text">Drag &amp; drop syllabus or exam file here</p>
+                <p class="dropzone-sub-text">Supports PDF, DOCX, Markdown, or plain text</p>
+                <button type="button" class="btn btn-outline btn-sm" id="browseFileBtn">Browse Files</button>
+              </div>
+            </div>
+            <div class="upload-feedback" id="uploadFeedback"></div>
+          </div>
+
+          <!-- Action Bar -->
+          <div class="action-footer">
+            <div class="action-options">
+              <label class="toggle-control" title="Use realistic high-fidelity simulation without API calls">
+                <input type="checkbox" id="forceDemoToggle">
+                <span class="toggle-track"></span>
+                <span class="toggle-label">Stage Demo Mode (Offline Safe)</span>
+              </label>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg" id="analyzeBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Analyze Exam Quality</span>
+            </button>
+          </div>
+
+          <div id="statusNotice" class="status-notice hidden"></div>
+        </form>
+      </section>
+
+      <!-- Results Panel -->
+      <section class="panel output-panel" id="outputPanel">
+        <!-- Empty Placeholder State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-illustration">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <h3>Ready for Academic Audit</h3>
+          <p>Load one of the demo presets above or enter your draft questions to evaluate curriculum alignment, Bloom's diversity, duplicate questions, and grading rubrics.</p>
+        </div>
+
+        <!-- Populated Results Dashboard -->
+        <div id="resultsDashboard" class="hidden">
+          <!-- Executive KPI Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card kpi-overall">
+              <div class="kpi-top">
+                <span class="kpi-title">Quality Index</span>
+                <span class="kpi-badge" id="healthRatingBadge">--</span>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-big-number" id="healthScore">0</span>
+                <span class="kpi-unit">/100</span>
+              </div>
+              <div class="kpi-bar-bg">
+                <div class="kpi-bar-fill" id="healthBar" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-title">LO Coverage</span>
+                <span class="kpi-icon-pill">🎯</span>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-mid-number" id="coverageScoreRatio">0 / 0</span>
+              </div>
+              <p class="kpi-subtext" id="coverageScoreSub">Checking learning outcomes...</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-title">Cognitive Rigor</span>
+                <span class="kpi-icon-pill">🧠</span>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-mid-number" id="rigorRatio">0%</span>
+              </div>
+              <p class="kpi-subtext" id="rigorSub">Higher-order thinking ratio</p>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-title">Integrity &amp; Leak Risk</span>
+                <span class="kpi-icon-pill">🛡️</span>
+              </div>
+              <div class="kpi-value-row">
+                <span class="kpi-mid-number" id="leakCount">0</span>
+              </div>
+              <p class="kpi-subtext" id="leakSub">Past exam matches flagged</p>
+            </div>
+          </div>
+
+          <!-- Export & Action Toolbar -->
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <span class="results-stamp" id="resultsCourseStamp">Course Assessment</span>
+              <span class="badge badge-success" id="resultsModelBadge">Live Gemini AI</span>
+            </div>
+            <div class="toolbar-right">
+              <button type="button" class="btn btn-secondary btn-sm" id="printRubricBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print TA Guide
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="exportAuditBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export OBE Audit (JSON)
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 1: Learning Outcome Coverage -->
+          <div class="result-section-card">
+            <div class="section-card-header">
+              <div class="section-heading">
+                <span class="section-icon">📊</span>
+                <div>
+                  <h3 class="section-title">Outcome-Based Education (OBE) Coverage</h3>
+                  <p class="section-desc">Audits whether each course outcome is actively addressed by the draft exam.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-card-body" id="coverageContent"></div>
+          </div>
+
+          <!-- Section 2: Cognitive Taxonomy Diversity -->
+          <div class="result-section-card">
+            <div class="section-card-header">
+              <div class="section-heading">
+                <span class="section-icon">🧠</span>
+                <div>
+                  <h3 class="section-title">Bloom's Taxonomy Cognitive Hierarchy</h3>
+                  <p class="section-desc">Measures balance between lower-order (recall) and higher-order (analyze/evaluate) questions.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-card-body">
+              <div class="bloom-container" id="bloomContent"></div>
+              <div id="bloomDiagnostic" class="diagnostic-box"></div>
+            </div>
+          </div>
+
+          <!-- Section 3: Past Exam Overlap & Leak Flags -->
+          <div class="result-section-card">
+            <div class="section-card-header">
+              <div class="section-heading">
+                <span class="section-icon">♻️</span>
+                <div>
+                  <h3 class="section-title">Past Exam Overlap &amp; Leakage Protection</h3>
+                  <p class="section-desc">Flags questions that closely duplicate past semester archives to prevent unfair question recycling.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-card-body" id="similarityContent"></div>
+          </div>
+
+          <!-- Section 4: Standardized Multi-Grader Rubrics -->
+          <div class="result-section-card" id="rubricsSection">
+            <div class="section-card-header">
+              <div class="section-heading">
+                <span class="section-icon">✅</span>
+                <div>
+                  <h3 class="section-title">Standardized Multi-Grader Rubrics</h3>
+                  <p class="section-desc">Clear point distributions and common penalty guidance for consistent grading across multiple TAs.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-card-body" id="rubricsContent"></div>
+          </div>
+
+          <!-- Section 5: Question-by-Question Deep Audit -->
+          <div class="result-section-card">
+            <div class="section-card-header">
+              <div class="section-heading">
+                <span class="section-icon">🔍</span>
+                <div>
+                  <h3 class="section-title">Detailed Question Audit &amp; Cognitive Elevation</h3>
+                  <p class="section-desc">Interactive review: Elevate rote questions or generate variants with one click.</p>
+                </div>
+              </div>
+            </div>
+            <div class="section-card-body" id="questionAuditContent"></div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Suggestion Modal -->
+  <div class="modal-overlay hidden" id="suggestionModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">AI Faculty Recommendation</h3>
+        <button type="button" class="modal-close" id="modalCloseBtn">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modalCancelBtn">Dismiss</button>
+        <button type="button" class="btn btn-primary" id="modalApplyBtn">Append to Draft Exam</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>Built for the <strong>AUST CSE Carnival AI Build Hackathon</strong> — Empowering university faculty through intelligent, human-in-the-loop assessment auditing.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+[
+  {
+    "year": 2023,
+    "course": "CSE220 - Data Structures",
+    "text": "Write a function to reverse a singly linked list in place and explain its time complexity."
+  },
+  {
+    "year": 2023,
+    "course": "CSE220 - Data Structures",
+    "text": "Explain the difference between a stack and a queue with a real-world example of each."
+  },
+  {
+    "year": 2024,
+    "course": "CSE220 - Data Structures",
+    "text": "Given an array, implement binary search and analyze its worst-case time complexity."
+  },
+  {
+    "year": 2024,
+    "course": "CSE220 - Data Structures",
+    "text": "Describe how a hash table resolves collisions and compare chaining vs open addressing."
+  },
+  {
+    "year": 2024,
+    "course": "CSE220 - Data Structures",
+    "text": "What is the time complexity of inserting an element into a balanced binary search tree?"
+  }
+]
